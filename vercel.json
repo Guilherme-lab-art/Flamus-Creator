@@ -1,0 +1,8 @@
+{
+  "crons": [
+    { "path": "/api/postar", "schedule": "30 12 * * *" }
+  ],
+  "functions": {
+    "api/postar.js": { "maxDuration": 60 }
+  }
+}
