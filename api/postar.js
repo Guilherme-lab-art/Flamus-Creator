@@ -22,8 +22,12 @@ const SITE_URL   = (process.env.SITE_URL || 'https://flammus.com.br').replace(/\
 const MODELO     = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
 // Modelos em ordem de preferência (se um estiver sobrecarregado, tenta o próximo)
-const MODELOS = [MODELO, 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash']
-  .filter((m, i, a) => m && a.indexOf(m) === i);
+const MODELOS = [
+  MODELO,
+  'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash',
+  'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
+].filter((m, i, a) => m && a.indexOf(m) === i);
 
 // Horários (UTC) dos posts do dia. UTC = Brasília + 3h → 13 = 10h · 22 = 19h
 const HORARIOS_UTC = [13, 22];
@@ -139,13 +143,16 @@ async function tentarModelo(modelo, angulo) {
 
 async function gerarConteudo(angulo) {
   let ultimoErro;
-  for (const modelo of MODELOS) {
-    try {
-      return await tentarModelo(modelo, angulo);
-    } catch (e) {
-      ultimoErro = e;
-      if (!e.recuperavel) throw e;
-      await new Promise(r => setTimeout(r, 900));
+  for (const [i, modelo] of MODELOS.entries()) {
+    const tentativas = i < 2 ? 2 : 1; // insiste nos modelos preferidos, depois roda a lista
+    for (let t = 0; t < tentativas; t++) {
+      try {
+        return await tentarModelo(modelo, angulo);
+      } catch (e) {
+        ultimoErro = e;
+        if (!e.recuperavel) throw e; // erro de chave/permissão: não adianta tentar outro
+        if (t < tentativas - 1) await new Promise(r => setTimeout(r, 600));
+      }
     }
   }
   throw ultimoErro;
