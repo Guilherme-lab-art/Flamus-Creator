@@ -222,11 +222,28 @@ module.exports = async function handler(req, res) {
   }
 
   const agora = String((req.query && req.query.agora) || '') === '1';
+  // ?teste=1 → gera o post e a arte mas NÃO envia ao Buffer (para conferir a qualidade)
+  const somenteTeste = String((req.query && req.query.teste) || '') === '1';
   // permite forçar um template na mão: ?tpl=2
   const tplForcado = (req.query && req.query.tpl) ? String(req.query.tpl) : null;
   const tplDe = (i) => tplForcado || [(i % 3) + 1][0];
 
   try {
+    // --- modo conferência: gera sem publicar nada ---
+    if (somenteTeste) {
+      const angulo = ANGULOS[Math.floor(Math.random() * ANGULOS.length)];
+      const c = await gerarConteudo(angulo);
+      const tpl = tplForcado || String((Math.floor(Math.random() * 3) + 1));
+      return res.status(200).json({
+        success: true,
+        mensagem: '🧪 Conferência (nada foi publicado)',
+        angulo,
+        conteudo: c,
+        arte: urlDaArte(c, tpl),
+        previa: `${SITE_URL}/api/og?${new URLSearchParams({ title: c.t, destaque: c.d, kicker: c.k, sub: c.s, tpl }).toString()}`
+      });
+    }
+
     // --- modo teste: publica 1 post agora ---
     if (agora) {
       const angulo = ANGULOS[Math.floor(Math.random() * ANGULOS.length)];
